@@ -45,7 +45,7 @@ make bzImage
 ```
 sudo apt-get install qemu
 ```
-2.制作根文件系统
+2. 制作根文件系统
 
 　制作根文件系统费了一番波折，无论是使用dracut还是busybox都遇到各种错误，最后无奈之下只好用了github上的一个[menuos](https://github.com/mengning/menu)。
  
@@ -75,16 +75,19 @@ gdb vmlinux -tui
 3. 下面根据进入文件或函数执行的顺序进行说明(只列举了一部分函数)
 
 - arch/x86/kernel/head_64.S
-  - 在GDB调试界面输入list，可以发现，当前指令所在的文件是head_64.S，其中一个重要函数startup_64()。（仍然是汇编代码，难以看懂）
-  - 查阅相关资料可知，startup_64()是内核解压后执行的第一个函数。那么为什么我们调试的时候没有解压内核那些步骤呢？我个人猜想，是因为用于调试的vmlinux是未压缩的内核，那么自然也就没有解压的操作。
+
+  - 在GDB调试界面输入list，可以发现，当前指令所在的文件是head_64.S，其中一个重要函数startup_64()。（仍然是汇编代码，难以看懂）
+  - 查阅相关资料可知，startup_64()是内核解压后执行的第一个函数。那么为什么我们调试的时候没有解压内核那些步骤呢？我个人猜想，是因为用于调试的vmlinux是未压缩的内核，那么自然也就没有解压的操作。
+  
   
 - init/main.c  start_kernel()
-  -start_kernel函数是linux内核中汇编语言和C语言的分界处，是内核初始化的入口函数。
-  - 查阅[相关资料](https://blog.csdn.net/RichardYSteven/article/details/52629731)可知，启动程序是经过多次跳转才进入start_kernel的，简要概括如下：
-  
+
+  - start_kernel函数是linux内核中汇编语言和C语言的分界处，是内核初始化的入口函数。
+  - 查阅[相关资料](https://blog.csdn.net/RichardYSteven/article/details/52629731)可知，启动程序是经过多次跳转才进入start_kernel的，简要概括如下
 > bootloader->header.S->head_64.S->startup_64->start_kernel，
 > 其中还包括从实模式到保护模式的跳转，从32位到64位的跳转等等。
   - start_kernel调用的第一个函数set_task_stack_end_magic(&init_task)实际上是创建了第一个进程init_task，被称为0号进程，也是唯一一个没有通过fork()或者kernel_thread()创建的进程。
+  
   ```
   set_task_stack_end_magic(&init_task)
   ```
@@ -92,7 +95,7 @@ gdb vmlinux -tui
   
   从这张图也可以看出，在执行start_kernel之前，是有解压内核这些操作的。
   
-  - 一系列初始化函数，但是这些函数执行完后，屏幕上不会有任何信息（函数输出的信息全部写入缓冲区中），因为此时控制台还不可用，直到函数console_init()的执行，之前写入缓冲区的信息才会显示出来。 
+  - 一系列初始化函数，但是这些函数执行完后，屏幕上不会有任何信息（函数输出的信息全部写入缓冲区中），因为此时控制台还不可用，直到函数console_init()的执行，之前写入缓冲区的信息才会显示出来。 
    ```
    boot_cpu_init();
    page_address_init();
@@ -101,20 +104,25 @@ gdb vmlinux -tui
    console_init();
    ```
    ![before console_init](https://github.com/OSH-2018/OS_Li/blob/master/lab01/console_init.png)
-   - 在调用console_init()之后仍然是一系列初始化函数，最后一个函数调用rest_init()很重要。
+   
+   - 在调用console_init()之后仍然是一系列初始化函数，最后一个函数调用rest_init()很重要。
+   
+   
 - init/main.c  rest_init()
   - 调用kernel_thread函数创建1号进程kernel_init
   ```
   pid = kernel_thread(kernel_init, NULL, CLONE_FS);
   ```
   ![pid=1](https://github.com/OSH-2018/OS_Li/blob/master/lab01/%E5%86%85%E6%A0%B81%E5%8F%B7%E8%BF%9B%E7%A8%8B.png)
+  
   - 调用kernel_thread函数创建2号进程kthreadd
   ```
   pid = kernel_thread(kthreadd, NULL, CLONE_FS | CLONE_FILES);
   ```
   ![pid=2](https://github.com/OSH-2018/OS_Li/blob/master/lab01/kthread%E8%BF%9B%E7%A8%8B.png)
+  
 - init/main.c  kernel_init()
-  - kernel_init()是init进程运行的函数，它调用各种函数完成设备驱动程序的初始化
+  - kernel_init()是init进程运行的函数，它调用各种函数完成设备驱动程序的初始化
   ![kernel_init]()
 
 ### 总结
@@ -128,7 +136,7 @@ gdb vmlinux -tui
 - 遇到的问题
   - GDB在设置完断点，输入c进行调试时，会出现如下错误：
   
-  > Remote 'g' packet reply is too long
+> Remote 'g' packet reply is too long
   
   在网络上查到两种解决办法，一种是修改源代码，但还需要重新编译，比较繁琐，另一种是在发生这个错误后输入如下命令：
   ```
