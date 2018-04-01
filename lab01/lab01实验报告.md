@@ -45,7 +45,7 @@ make bzImage
 ```
 sudo apt-get install qemu
 ```
-2. 由于只需要跟踪linux的启动过程，并不用管内核启动完成后的事情，所以并不需要制作虚拟磁盘和文件系统，直接执行如下命令
+2. 执行如下命令
 ```
 qemu-system-x86_64 -S -kernel arch/x86/boot/bzImage -m 1024 -append "nokaslr"
 ```
@@ -73,18 +73,34 @@ gdb vmlinux -tui
 - arch/x86/kernel/head_64.S
 
 - init/main.c  start_kernel()
-  
-  - start_kernel调用的第一个函数set_task_stack_end_magic(&init_task)实际上是创建了第一个进程init_task，被称为0号进程，也是唯一一个没有通过fork()或者kernel_thread()创建的进程。
-  
-  - boot_cpu_init(),page_address_init(),setup_arch()等一系列初始化函数，但是这些函数执行完后，屏幕上不会有任何信息（函数输出的信息全部写入缓冲区中），因为此时控制台还不可用，直到函数console_init()的执行，之前写入缓冲区的信息才会显示出来。、
-  
-  - 在调用console_init()之后仍然是一系列初始化函数，最后一个函数调用rest_init()很重要，
-
+  - start_kernel调用的第一个函数set_task_stack_end_magic(&init_task)实际上是创建了第一个进程init_task，被称为0号进程，也是唯一一个没有通过fork()或者kernel_thread()创建的进程。
+  ```
+  set_task_stack_end_magic(&init_task)
+  ```
+  - 一系列初始化函数，但是这些函数执行完后，屏幕上不会有任何信息（函数输出的信息全部写入缓冲区中），因为此时控制台还不可用，直到函数console_init()的执行，之前写入缓冲区的信息才会显示出来。 
+   ```
+   boot_cpu_init();
+   page_address_init();
+   setup_arch(&command_line);
+   ...
+   ```
+  - 在调用console_init()之后仍然是一系列初始化函数，最后一个函数调用rest_init()很重要。
 - init/main.c  rest_init()
-
-  - 
-
-　
-
+  - 调用kernel_thread函数创建1号进程kernel_init
+  ```
+  pid = kernel_thread(kernel_init, NULL, CLONE_FS);
+  ```
+  - 调用kernel_thread函数创建2号进程kthreadd
+  ```
+  pid = kernel_thread(kthreadd, NULL, CLONE_FS | CLONE_FILES);
+  ```
 
 ### 总结
+
+- linux内核在启动过程中最关键的事件应该是0号、１号和２号进程的创建。
+  - 0号进程即IDLE进程，由操作系统直接创建
+  - 1号进程即init进程，由0号进程通过kernel_thread函数创建，是所有用户态进程的祖先
+  - 2号进程即kthreadd进程，同样由0号进程通过kernel_thread函数创建，负责管理内核线程
+  
+- 不足之处
+  - 没有跟踪内核启动到startup_64这段过程
