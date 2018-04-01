@@ -68,9 +68,21 @@ gdb vmlinux -tui
 ```
 　　再输入target remote localhost:1234，与qemu建立连接。
 
-3. 下面根据进入文件或函数执行的顺序进行说明
+3. 下面根据进入文件或函数执行的顺序进行说明(只列举了一部分函数)
 
-* arch/x86/kernel/head_64.S
+- arch/x86/kernel/head_64.S
+
+- init/main.c  start_kernel()
+  
+  - start_kernel调用的第一个函数set_task_stack_end_magic(&init_task)实际上是创建了第一个进程init_task，被称为0号进程，也是唯一一个没有通过fork()或者kernel_thread()创建的进程。
+  
+  - boot_cpu_init(),page_address_init(),setup_arch()等一系列初始化函数，但是这些函数执行完后，屏幕上不会有任何信息（函数输出的信息全部写入缓冲区中），因为此时控制台还不可用，直到函数console_init()的执行，之前写入缓冲区的信息才会显示出来。、
+  
+  - 在调用console_init()之后仍然是一系列初始化函数，最后一个函数调用rest_init()很重要，
+
+- init/main.c  rest_init()
+
+  - 
 
 　
 
