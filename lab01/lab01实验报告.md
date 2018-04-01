@@ -93,9 +93,9 @@ gdb vmlinux -tui
   ```
   ![before start_kernel](https://github.com/OSH-2018/OS_Li/blob/master/lab01/before%20start_kernel.png)
   
-  从这张图也可以看出，在执行start_kernel之前，是有解压内核这些操作的。
+  从这张图也可以看出，在执行start_kernel之前，是有解压内核这些操作的。   
   
-  - 一系列初始化函数，但是这些函数执行完后，屏幕上不会有任何信息（函数输出的信息全部写入缓冲区中），因为此时控制台还不可用，直到函数console_init()的执行，之前写入缓冲区的信息才会显示出来。 
+  -   一系列初始化函数，但是这些函数执行完后，屏幕上不会有任何信息（函数输出的信息全部写入缓冲区中），因为此时控制台还不可用，直到函数console_init()的执行，之前写入缓冲区的信息才会显示出来。 
    ```
    boot_cpu_init();
    page_address_init();
@@ -105,7 +105,7 @@ gdb vmlinux -tui
    ```
    ![before console_init](https://github.com/OSH-2018/OS_Li/blob/master/lab01/console_init.png)
    
-   - 在调用console_init()之后仍然是一系列初始化函数，最后一个函数调用rest_init()很重要。
+   -   在调用console_init()之后仍然是一系列初始化函数，最后一个函数调用rest_init()很重要。
    
    
 - init/main.c  rest_init()
@@ -114,8 +114,8 @@ gdb vmlinux -tui
   pid = kernel_thread(kernel_init, NULL, CLONE_FS);
   ```
   ![pid=1](https://github.com/OSH-2018/OS_Li/blob/master/lab01/%E5%86%85%E6%A0%B81%E5%8F%B7%E8%BF%9B%E7%A8%8B.png)
-  
-  - 调用kernel_thread函数创建2号进程kthreadd
+  
+  -   调用kernel_thread函数创建2号进程kthreadd
   ```
   pid = kernel_thread(kthreadd, NULL, CLONE_FS | CLONE_FILES);
   ```
@@ -123,7 +123,7 @@ gdb vmlinux -tui
   
 - init/main.c  kernel_init()
   - kernel_init()是init进程运行的函数，它调用各种函数完成设备驱动程序的初始化
-  ![kernel_init]()
+  ![kernel_init](https://github.com/OSH-2018/OS_Li/blob/master/lab01/kernel_init's%20work.png)
 
 ### 总结
 
