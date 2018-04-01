@@ -75,27 +75,25 @@ gdb vmlinux -tui
 3. 下面根据进入文件或函数执行的顺序进行说明(只列举了一部分函数)
 
 - arch/x86/kernel/head_64.S
-
   - 在GDB调试界面输入list，可以发现，当前指令所在的文件是head_64.S，其中一个重要函数startup_64()。（仍然是汇编代码，难以看懂）
-  - 查阅相关资料可知，startup_64()是内核解压后执行的第一个函数。那么为什么我们调试的时候没有解压内核那些步骤呢？我个人猜想，是因为用于调试的vmlinux是未压缩的内核，那么自然也就没有解压的操作。
+  - 查阅相关资料可知，startup_64()是内核解压后执行的第一个函数。那么为什么我们调试的时候没有解压内核那些步骤呢？我个人猜想，是因为用于调试的vmlinux是未压缩的内核，那么自然也就没有解压的操作
   
   
 - init/main.c  start_kernel()
-
-  - start_kernel函数是linux内核中汇编语言和C语言的分界处，是内核初始化的入口函数。
+  - start_kernel函数是linux内核中汇编语言和C语言的分界处，是内核初始化的入口函数
   - 查阅[相关资料](https://blog.csdn.net/RichardYSteven/article/details/52629731)可知，启动程序是经过多次跳转才进入start_kernel的，简要概括如下
 > bootloader->header.S->head_64.S->startup_64->start_kernel，
-> 其中还包括从实模式到保护模式的跳转，从32位到64位的跳转等等。
-  - start_kernel调用的第一个函数set_task_stack_end_magic(&init_task)实际上是创建了第一个进程init_task，被称为0号进程，也是唯一一个没有通过fork()或者kernel_thread()创建的进程。
+> 其中还包括从实模式到保护模式的跳转，从32位到64位的跳转等等
+  - start_kernel调用的第一个函数set_task_stack_end_magic(&init_task)实际上是创建了第一个进程init_task，被称为0号进程，也是唯一一个没有通过fork()或者kernel_thread()创建的进程
   
   ```
   set_task_stack_end_magic(&init_task)
   ```
   ![before start_kernel](https://github.com/OSH-2018/OS_Li/blob/master/lab01/before%20start_kernel.png)
   
-  从这张图也可以看出，在执行start_kernel之前，是有解压内核这些操作的。   
+  从这张图也可以看出，在执行start_kernel之前，是有解压内核这些操作的
   
-  -   一系列初始化函数，但是这些函数执行完后，屏幕上不会有任何信息（函数输出的信息全部写入缓冲区中），因为此时控制台还不可用，直到函数console_init()的执行，之前写入缓冲区的信息才会显示出来。 
+  - 一系列初始化函数，但是这些函数执行完后，屏幕上不会有任何信息（函数输出的信息全部写入缓冲区中），因为此时控制台还不可用，直到函数console_init()的执行，之前写入缓冲区的信息才会显示出来
    ```
    boot_cpu_init();
    page_address_init();
@@ -105,7 +103,7 @@ gdb vmlinux -tui
    ```
    ![before console_init](https://github.com/OSH-2018/OS_Li/blob/master/lab01/console_init.png)
    
-   -   在调用console_init()之后仍然是一系列初始化函数，最后一个函数调用rest_init()很重要。
+   - 在调用console_init()之后仍然是一系列初始化函数，最后一个函数调用rest_init()很重要
    
    
 - init/main.c  rest_init()
@@ -127,9 +125,9 @@ gdb vmlinux -tui
 
 ### 总结
 
-- linux内核在启动过程中最关键的事件应该是0号、１号和２号进程的创建。
-  - 0号进程即IDLE进程，由操作系统直接创建，当内核加载完成后，运行队列中没有进程时，该进程会进入运行
-  - 1号进程即init进程，由0号进程通过kernel_thread函数创建，并完成各种设备驱动程序的初始化，还是所有用户进程的祖先
+- linux内核在启动过程中最关键的事件应该是0号、１号和２号进程的创建
+  - 0号进程即IDLE进程，由操作系统直接创建，当内核加载完成后，运行队列中没有进程时，该进程会进入运行
+  - 1号进程即init进程，由0号进程通过kernel_thread函数创建，并完成各种设备驱动程序的初始化，还是所有用户进程的祖先
   - 2号进程即kthreadd进程，同样由0号进程通过kernel_thread函数创建，负责管理内核线程  
 - 不足之处
   - 没有跟踪内核启动到startup_64这段过程
@@ -144,3 +142,4 @@ gdb vmlinux -tui
   (gdb)set arch i386:x86-64:intel
   (gdb)target remote:1234
   ```
+- 注：前面某些地方的排版有些问题，层次错乱
