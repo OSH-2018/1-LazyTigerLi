@@ -77,23 +77,29 @@ gdb vmlinux -tui
   ```
   set_task_stack_end_magic(&init_task)
   ```
+  ![before start_kernel](https://github.com/OSH-2018/OS_Li/blob/master/lab01/before%20start_kernel.png)
   - 一系列初始化函数，但是这些函数执行完后，屏幕上不会有任何信息（函数输出的信息全部写入缓冲区中），因为此时控制台还不可用，直到函数console_init()的执行，之前写入缓冲区的信息才会显示出来。 
    ```
    boot_cpu_init();
    page_address_init();
    setup_arch(&command_line);
    ...
+   console_init();
    ```
+   ![before console_init](https://github.com/OSH-2018/OS_Li/blob/master/lab01/console_init.png)
+   
   - 在调用console_init()之后仍然是一系列初始化函数，最后一个函数调用rest_init()很重要。
 - init/main.c  rest_init()
   - 调用kernel_thread函数创建1号进程kernel_init
   ```
   pid = kernel_thread(kernel_init, NULL, CLONE_FS);
   ```
+  ![pid=1](https://github.com/OSH-2018/OS_Li/blob/master/lab01/%E5%86%85%E6%A0%B81%E5%8F%B7%E8%BF%9B%E7%A8%8B.png)
   - 调用kernel_thread函数创建2号进程kthreadd
   ```
   pid = kernel_thread(kthreadd, NULL, CLONE_FS | CLONE_FILES);
   ```
+  ![pid=2](https://github.com/OSH-2018/OS_Li/blob/master/lab01/kthread%E8%BF%9B%E7%A8%8B.png)
 
 ### 总结
 
