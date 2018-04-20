@@ -6,7 +6,6 @@
 #include <stdlib.h>
 
 extern char **environ;
-int pipefd[2];
 int pipe_num;
 char **printEnviron()
 {
@@ -56,7 +55,7 @@ void pipeCommand(char **args)						//处理管道命令
 	
     //以下执行管道命令的部分
     //原本想用循环来处理任意多个管道，但总是有错误，所以先交一个比较粗暴的版本（根据管道个数分类）
-    pipe(pipefd);
+    int pipefd[2];
     if(pipe_num == 2)
     {
         pid_t pid1,pid2;
