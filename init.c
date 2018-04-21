@@ -4,9 +4,13 @@
 #include <sys/wait.h>
 #include <sys/types.h>
 #include <stdlib.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 
 extern char **environ;
 int pipe_num;
+int redirection_out;
+int redirection_in;
 char **printEnviron()
 {
      return environ;
@@ -15,6 +19,62 @@ char *printWorkingDirectory()
 {
     char wd[4096];
     return getcwd(wd,4096);
+}
+
+void redirectionCommand(char **args)
+{
+    char *name,*name1;
+    char *new_args[128];
+    int i;
+    for(i = 0;strcmp(args[i],">") != 0 && strcmp(args[i],">>") != 0
+        && strcmp(args[i],"<") && strcmp(args[0],"<<"); i++)
+        new_args[i] = args[i];
+    new_args[i + 1] = NULL;
+    name = args[i + 1];
+    if(redirection_in)name1 = args[i + 3];
+    if(redirection_in == 0)
+    {
+        pid_t pid;
+        int fd,fd_temp;
+        pid = fork();
+        if(pid == 0)
+        {
+            close(fileno(stdout));
+            if(redirection_out == 1)fd = open(name,O_WRONLY |O_TRUNC | O_CREAT,0644);
+            else fd = open(name,O_WRONLY | O_APPEND | O_CREAT,0644);
+            fd_temp= dup2(fileno(stdout),fd);
+            execvp(new_args[0],new_args);
+            close(fileno(stdout));
+            dup2(fd_temp,fileno(stdout));
+        }
+        wait(NULL);
+    }
+   /* else
+    {
+        if(redirection_in == 2)
+        {
+            pid_t pid;
+            int fd,fd_temp;
+            pid = fork();
+            if(pid == 0)
+            {
+                close(fileno(stdout));
+                if(redirection_out == 1)fd = open(name,O_WRONLY |O_TRUNC | O_CREAT,0644);
+                else fd = open(name,O_WRONLY | O_APPEND | O_CREAT,0644);
+                fd_temp= dup2(fileno(stdout),fd);
+                printf("aetwq\n");
+                execvp(new_args[0],new_args);
+                //char *buffer;
+                //read(fd,buffer,1024);
+                //if(strcmp(buffer,name1) == 1)exit(0);
+                close(fileno(stdout));
+                dup2(fd_temp,fileno(stdout));
+                printf("456\n");
+            }
+            wait(NULL);
+        }
+    }*/
+
 }
 
 
@@ -167,7 +227,8 @@ int main() {
         for (i = 0; cmd[i] != '\n'; i++);
         cmd[i] = '\0';
         args[0] = cmd;
-
+        redirection_out = 0;
+        redirection_in = 0;
         pipe_num = 0;
         for(int j = 0; cmd[j]; j++)
             if(cmd[j] == '|')pipe_num++;
@@ -182,6 +243,56 @@ int main() {
                     for(;*args[i + 1] == ' ';)args[i + 1]++;
                     whether_break = 1;
                 }
+                if(*args[i + 1] == '>')
+                {
+                    *args[i + 1] = '\0';
+                    if(*(args[i + 1] + 1) == '>')
+                    {
+                        args[i + 1] += 2;
+                        args[i + 2] = args[i + 1];
+                        for(;*args[i + 2] == ' ';)args[i + 2]++;
+                        args[i + 1] = ">>";
+                        i++;
+                        redirection_out = 2;
+                        whether_break = 1;
+                    }
+                    else
+                    {
+                        args[i + 1]++;
+                        args[i + 2] = args[i + 1];
+                        for(;*args[i + 2] == ' ';)args[i + 2]++;
+                        args[i + 1] = ">";
+                        i++;
+                        redirection_out = 1;
+                        whether_break = 1;
+                    }
+
+                }
+                if(*args[i + 1] == '<')
+                {
+                    *args[i + 1] = '\0';
+                    if(*(args[i + 1] + 1) == '<')
+                    {
+                        args[i + 1] += 2;
+                        args[i + 2] = args[i + 1];
+                        for(;*args[i + 2] == ' ';)args[i + 2]++;
+                        args[i + 1] = "<<";
+                        i++;
+                        redirection_in = 2;
+                        whether_break = 1;
+                    }
+                    else
+                    {
+                        args[i + 1]++;
+                        args[i + 2] = args[i + 1];
+                        for(;*args[i + 2] == ' ';)args[i + 2]++;
+                        args[i + 1] = "<";
+                        i++;
+                        redirection_in = 1;
+                        whether_break = 1;
+                    }
+                }
+
                 if(*args[i + 1] == '|')
                 {
                     *args[i + 1] = '\0';
@@ -198,47 +309,55 @@ int main() {
         if (!args[0])continue;
         if(pipe_num == 0)
         {
-            if (strcmp(args[0], "cd") == 0)
+            if(redirection_in == 0 && redirection_out == 0)
             {
-                if (args[1])chdir(args[1]);
-                continue;
-            }
-            if(strcmp(args[0],"env") == 0)
-            {
-                char **result = printEnviron();
-                while(*result)
+                if (strcmp(args[0], "cd") == 0)
                 {
-                    puts(*result);
-                    result++;
+                    if (args[1])chdir(args[1]);
+                    continue;
                 }
-                continue;
-            }
-            if(strcmp(args[0],"pwd") == 0)
-            {
-                puts(printWorkingDirectory());
-                continue;
-            }
-            if(strcmp(args[0],"export") == 0)
-            {
-                char *name = args[1],*value;
-                for(int j = 0; *args[1]; args[1]++,j++)
-                    if(*args[1] == '=')
+                if(strcmp(args[0],"env") == 0)
+                {
+                    char **result = printEnviron();
+                    while(*result)
                     {
-                        name[j] = '\0';
-                        value = ++args[1];
+                        puts(*result);
+                        result++;
                     }
-                setenv(name,value,1);
+                    continue;
+                }
+                if(strcmp(args[0],"pwd") == 0)
+                {
+                    puts(printWorkingDirectory());
+                    continue;
+                }
+                if(strcmp(args[0],"export") == 0)
+                {
+                    char *name = args[1],*value;
+                    for(int j = 0; *args[1]; args[1]++,j++)
+                        if(*args[1] == '=')
+                        {
+                            name[j] = '\0';
+                            value = ++args[1];
+                        }
+                    setenv(name,value,1);
+                    continue;
+                }
+                if (strcmp(args[0], "exit") == 0)return 0;
+                pid_t pid = fork();
+                if (pid == 0)
+                {
+                    execvp(args[0], args);
+
+                    return 255;
+                }
+                wait(NULL);
+            }
+            else
+            {
+                redirectionCommand(args);
                 continue;
             }
-            if (strcmp(args[0], "exit") == 0)return 0;
-            pid_t pid = fork();
-            if (pid == 0)
-            {
-                execvp(args[0], args);
-
-                return 255;
-            }
-            wait(NULL);
         }
         else
         {
